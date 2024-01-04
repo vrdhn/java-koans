@@ -2,10 +2,11 @@
 class Koan {
 
     /**
-     * All koans should be annotated with this for them to be presented to user in the correct order
+     * All koan ( i.e. public static void koan*() methods ) should use this to add description. The
+     * engine would print this when the koan fails
      */
-    public @interface Order {
-        int value();
+    public @interface Doc {
+        String value();
     }
 
     /** All koans should derive from this for using the common functions. */
