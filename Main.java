@@ -1,3 +1,4 @@
+import com.sun.source.doctree.DocCommentTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.tree.MethodTree;
@@ -5,7 +6,6 @@ import com.sun.source.util.DocTrees;
 import com.sun.source.util.JavacTask;
 import com.sun.source.util.SimpleTreeVisitor;
 import com.sun.source.util.TreePath;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
@@ -21,23 +21,25 @@ import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
-
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
 
-/** Driver for all the koan files. Execute with java directly. */
-public class Run {
+/**
+ * Driver for all the koan files. Execute with java directly.
+ */
+public class Main {
 
     /** Update this when a new helper source file is added in koans folder */
     private static final String HELPER_CLASSES = " ";
 
     /** Update this when a new koans source file is added in koans folder */
-    private static final String KOANS_CLASSES = "BasicKoan ";
+    private static final String KOANS_CLASSES = "Intro1 Intro2 ";
 
     private static final Logger LOG;
 
     static {
-        System.setProperty("java.util.logging.SimpleFormatter.format", "%1$tT : %4$s : %5$s%6$s%n");
+        System.setProperty("java.util.logging.SimpleFormatter.format",
+                           "%1$tT : %4$s : %5$s%6$s%n");
         LOG = Logger.getAnonymousLogger();
     }
 
@@ -68,12 +70,12 @@ public class Run {
         Set<String> diff = asSet(helperClasses);
         diff.retainAll(asSet(koansClasses));
         if (!diff.isEmpty()) {
-            LOG.severe("HELPERS and SOURCES in Run.java have common elements:" + diff);
+            LOG.severe("HELPERS and SOURCES in Main.java have common elements:" + diff);
             return;
         }
 
         try {
-            Run runner = new Run(sourcePath, classPath, helperClasses, koansClasses);
+            Main runner = new Main(sourcePath, classPath, helperClasses, koansClasses);
             runner.runKoans();
         } catch (Throwable e) {
             LOG.log(Level.SEVERE, "Caught exception ", e);
@@ -89,21 +91,19 @@ public class Run {
     private final WatchService watcher;
     private final WatchKey watchKey;
 
-    private Run(String sourcePath, String classPath, String[] helperClasses, String[] koansClasses)
-            throws IOException {
+    private Main(String sourcePath, String classPath, String[] helperClasses, String[] koansClasses)
+        throws IOException {
         this.sourcePath = sourcePath;
         this.classPath = classPath;
         this.helperClasses = helperClasses;
         this.koansClasses = koansClasses;
 
         this.watcher = FileSystems.getDefault().newWatchService();
-        this.watchKey =
-                Paths.get(sourcePath)
-                        .register(
-                                watcher,
-                                StandardWatchEventKinds.ENTRY_MODIFY,
-                                StandardWatchEventKinds.ENTRY_CREATE,
-                                StandardWatchEventKinds.ENTRY_DELETE);
+        this.watchKey = Paths.get(sourcePath)
+            .register( watcher,
+                       StandardWatchEventKinds.ENTRY_MODIFY,
+                       StandardWatchEventKinds.ENTRY_CREATE,
+                       StandardWatchEventKinds.ENTRY_DELETE);
     }
 
     private void runKoans() throws Exception {
@@ -114,12 +114,12 @@ public class Run {
             finished = checkFiles() && compileHelperFiles() && runAllKoans(finishedKoans);
 
             if (!finished) {
-                watchKey.pollEvents();
-                while (null != watcher.poll())
-                    ;
                 LOG.info("");
                 LOG.info("Edit the file(s) and save to continue");
                 LOG.info("");
+
+                watchKey.pollEvents();
+                while (null != watcher.poll()){/*nothing to do*/}
                 watchKey.reset();
                 watcher.take();
                 Thread.sleep(300);
@@ -146,12 +146,13 @@ public class Run {
             ret = false;
         }
         if (!undeclared.isEmpty()) {
-            LOG.severe("Classes not declared in Run.java : " + undeclared);
+            LOG.severe("Classes not declared in Main.java : " + undeclared);
             ret = false;
         }
         if (!ret) {
-            LOG.severe(
-                    "Update Run.java and/or add/remove Java files in " + sourcePath + " and rerun");
+            LOG.severe( "Update Main.java and/or add/remove Java files in "
+                        + sourcePath
+                        + " and rerun");
         }
         return ret;
     }
@@ -189,8 +190,7 @@ public class Run {
         if (!compilationStatus) {
             return false;
         }
-        /*@Nullable */
-        List<KoanMethod> methods = loadClass(koanClass);
+        /*@Nullable */ List<KoanMethod> methods = loadClass(koanClass);
         if (methods == null) {
             return false;
         }
@@ -221,9 +221,8 @@ public class Run {
         } catch (Throwable e) {
             LOG.severe("Invocation failed when running " + method);
             LOG.info("  /------------------------------------------------------------");
-            LOG.info("  |");
             for (String line : m.desc.split("\\n")) {
-                LOG.info("  | " + line);
+                LOG.info("  |" + line);
             }
             LOG.info("  |=============================================================");
             LOG.info("  |");
@@ -231,12 +230,12 @@ public class Run {
                 if (ie.getCause() instanceof AssertionError ae) {
                     StackTraceElement frame = ae.getStackTrace()[0];
                     LOG.severe(
-                            "| koans/"
-                                    + frame.getFileName()
-                                    + ":"
-                                    + frame.getLineNumber()
-                                    + ": assert: "
-                                    + ae.getMessage());
+                               "| koans/"
+                               + frame.getFileName()
+                               + ":"
+                               + frame.getLineNumber()
+                               + ": assert: "
+                               + ae.getMessage());
 
                 } else {
                     LOG.log(Level.SEVERE, "| Unrecognized exception:");
@@ -270,8 +269,8 @@ public class Run {
     private static class ByteClassLoader extends URLClassLoader {
         public ByteClassLoader(String classPath) throws MalformedURLException {
             super(
-                    new URL[] {new File(classPath).toURI().toURL()},
-                    ByteClassLoader.class.getClassLoader());
+                  new URL[] {new File(classPath).toURI().toURL()},
+                  ByteClassLoader.class.getClassLoader());
             this.setDefaultAssertionStatus(true);
         }
     }
@@ -283,8 +282,8 @@ public class Run {
         int seq = 0;
 
         public TreeVisitor(
-                JavacTask task, Map<String, Method> koanMethods, List<KoanMethod> methods)
-                throws IOException {
+                           JavacTask task, Map<String, Method> koanMethods, List<KoanMethod> methods)
+            throws IOException {
             this.methods = methods;
             this.koanMethods = koanMethods;
             Iterable<? extends CompilationUnitTree> asts = task.parse();
@@ -302,12 +301,13 @@ public class Run {
         @Override
         public Void visitMethod(MethodTree node, CompilationUnitTree ast) {
             String name = node.getName().toString();
+            DocCommentTree javaDoc = docTree.getDocCommentTree(TreePath.getPath(ast, node));
             KoanMethod km =
-                    new KoanMethod(
-                            name,
-                            koanMethods.get(name),
-                            seq++,
-                            docTree.getDocCommentTree(TreePath.getPath(ast, node)).toString());
+                new KoanMethod(
+                               name,
+                               koanMethods.get(name),
+                               seq++,
+                               ' ' + javaDoc.toString());
             methods.add(km);
             return null;
         }
@@ -315,7 +315,6 @@ public class Run {
 
     private /*@Nullable */ List<KoanMethod> loadClass(String koanClass) {
         try {
-            // Hoping that this reloads the file as required.
             final Class<?> loadedClass;
             try (ByteClassLoader classLoader = new ByteClassLoader(this.classPath)) {
                 loadedClass = classLoader.loadClass(koanClass);
@@ -329,8 +328,8 @@ public class Run {
             Map<String, Method> koanMethods = new HashMap<>();
             for (Method m : loadedClass.getDeclaredMethods()) {
                 if (m.accessFlags().containsAll(List.of(AccessFlag.PUBLIC, AccessFlag.STATIC))
-                        && m.getReturnType().equals(void.class)
-                        && m.getParameterCount() == 0) {
+                    && m.getReturnType().equals(void.class)
+                    && m.getParameterCount() == 0) {
                     koanMethods.put(m.getName(), m);
                 }
             }
@@ -376,19 +375,19 @@ public class Run {
     }
 
     private JavaCompiler.CompilationTask getCompilationTask(
-            StringWriter output, String... classNames) {
+                                                            StringWriter output, String... classNames) {
         List<String> options =
-                List.of(
-                        "-g",
-                        "-cp",
-                        this.classPath,
-                        "-d",
-                        this.classPath,
-                        "-Werror",
-                        "-Xdiags:verbose",
-                        "-Xlint",
-                        "-Xmaxerrs",
-                        "1");
+            List.of(
+                    "-g",
+                    "-cp",
+                    this.classPath,
+                    "-d",
+                    this.classPath,
+                    "-Werror",
+                    "-Xdiags:verbose",
+                    "-Xlint",
+                    "-Xmaxerrs",
+                    "1");
         String[] fileNames = new String[classNames.length];
         for (int j = 0; j < classNames.length; j++) {
             fileNames[j] = this.sourcePath + "/" + classNames[j] + ".java";
@@ -396,13 +395,13 @@ public class Run {
         var compiler = ToolProvider.getSystemJavaCompiler();
         var fileManager = compiler.getStandardFileManager(null, null, null);
         var task =
-                compiler.getTask(
-                        output,
-                        fileManager,
-                        null,
-                        options,
-                        null,
-                        fileManager.getJavaFileObjects(fileNames));
+            compiler.getTask(
+                             output,
+                             fileManager,
+                             null,
+                             options,
+                             null,
+                             fileManager.getJavaFileObjects(fileNames));
         return task;
     }
 

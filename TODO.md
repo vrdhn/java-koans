@@ -1,31 +1,9 @@
 # Engine
 
-- [] Add Package name
-  - [] figure out a domain, and register it (-:
-  - [] update code, if any
-  
-- [] Finding list of koans files
-  - [] all java files in koans/ directory
-  - [] should have @Order
-  - [] should be public class
-  - 
-- [] Finding functions for koans: one of :-
-  - [] Scanning: all public static void () match with scanned list. (implemented)
-  - [] sorting by line number when reflecting
-  - [] explicit order annotation ?
+- [ ] Add Package name
+  - [ ] figure out a (high level! ) domain, and register it (-:
+  - [ ] code: after compiling, parse to get package name
 
 
-- [] Add watcher:
-  - [] Add loop if file fails.
-  - [] Add blocking watcher which watches for specific java file
-  - []
+- [ ]  Add command line option for specific file , package etc.
 
-- []  Add command line option for specific file & test
-  - []  Useful when developing koans.
-
-
-# Koans
-
-* Introduction to the koan system
-  * assert
-  * 
