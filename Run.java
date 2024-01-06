@@ -1,8 +1,10 @@
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.tree.MethodTree;
-import com.sun.source.tree.Tree;
+import com.sun.source.util.DocTrees;
 import com.sun.source.util.JavacTask;
+import com.sun.source.util.SimpleTreeVisitor;
+import com.sun.source.util.TreePath;
 
 import java.io.File;
 import java.io.IOException;
@@ -27,7 +29,7 @@ import javax.tools.ToolProvider;
 public class Run {
 
     /** Update this when a new helper source file is added in koans folder */
-    private static final String HELPER_CLASSES = "Koan ";
+    private static final String HELPER_CLASSES = " ";
 
     /** Update this when a new koans source file is added in koans folder */
     private static final String KOANS_CLASSES = "BasicKoan ";
@@ -57,7 +59,7 @@ public class Run {
                 return;
             }
         } else {
-            if (false == cp.mkdirs()) {
+            if (!cp.mkdirs()) {
                 LOG.severe("Error creating Build directory " + cp + " !");
                 return;
             }
@@ -66,7 +68,7 @@ public class Run {
         Set<String> diff = asSet(helperClasses);
         diff.retainAll(asSet(koansClasses));
         if (!diff.isEmpty()) {
-            LOG.severe("HELPERS and SOURCES in Run.java have common elements:" + diff.toString());
+            LOG.severe("HELPERS and SOURCES in Run.java have common elements:" + diff);
             return;
         }
 
@@ -77,6 +79,8 @@ public class Run {
             LOG.log(Level.SEVERE, "Caught exception ", e);
         }
     }
+
+    private record KoanMethod(String name, Method method, int seq, String desc) {}
 
     private final String sourcePath;
     private final String classPath;
@@ -138,11 +142,11 @@ public class Run {
         }
         boolean ret = true;
         if (!declared.isEmpty()) {
-            LOG.severe("Files not found in " + sourcePath + ": " + declared.toString());
+            LOG.severe("Files not found in " + sourcePath + ": " + declared);
             ret = false;
         }
         if (!undeclared.isEmpty()) {
-            LOG.severe("Classes not declared in Run.java : " + undeclared.toString());
+            LOG.severe("Classes not declared in Run.java : " + undeclared);
             ret = false;
         }
         if (!ret) {
@@ -153,6 +157,9 @@ public class Run {
     }
 
     private boolean compileHelperFiles() {
+        if (this.helperClasses.length == 0) {
+            return true;
+        }
         boolean status = compile(this.helperClasses);
         if (!status) {
             LOG.severe("Compilation of helper classes has failed, which should not happen.");
@@ -166,32 +173,9 @@ public class Run {
         for (String koanClass : this.koansClasses) {
             currClass++;
             if (!finishedKoans.contains(koanClass)) {
-                boolean compilationStatus = compile(koanClass);
-                if (!compilationStatus) {
+                if (!runSingleKoan(finishedKoans, koanClass)) {
                     return false;
                 }
-                /*@Nullable */
-                List<Method> methods = loadClass(koanClass);
-                if (methods == null) {
-                    return false;
-                }
-                int total = methods.size();
-                int curr = 0;
-                for (Method m : methods) {
-                    curr++;
-                    String methodName = koanClass + "::" + m.getName();
-                    if (!finishedKoans.contains(methodName)) {
-                        boolean invokeStatus = invoke(m, methodName);
-                        if (invokeStatus == false) {
-                            return false;
-                        }
-                        LOG.info("Koan done  [" + curr + "/" + total + "]: " + methodName);
-                        finishedKoans.add(methodName);
-                    } else {
-                        LOG.info("Koan skipped [" + curr + "/" + total + "]: " + methodName);
-                    }
-                }
-                finishedKoans.add(koanClass);
                 LOG.info("Koan set done [" + currClass + "/" + totalClass + "]: " + koanClass);
             } else {
                 LOG.info("Koan set skipped [" + currClass + "/" + totalClass + "]: " + koanClass);
@@ -200,32 +184,85 @@ public class Run {
         return true;
     }
 
-    private boolean invoke(Method m, String method) {
+    private boolean runSingleKoan(Set<String> finishedKoans, String koanClass) {
+        boolean compilationStatus = compile(koanClass);
+        if (!compilationStatus) {
+            return false;
+        }
+        /*@Nullable */
+        List<KoanMethod> methods = loadClass(koanClass);
+        if (methods == null) {
+            return false;
+        }
+        int total = methods.size();
+        int curr = 0;
+        for (KoanMethod m : methods) {
+            curr++;
+            String methodName = koanClass + "::" + m.name();
+            if (!finishedKoans.contains(methodName)) {
+                boolean invokeStatus = invoke(m, methodName);
+                if (!invokeStatus) {
+                    return false;
+                }
+                LOG.info("Koan done  [" + curr + "/" + total + "]: " + methodName);
+                finishedKoans.add(methodName);
+            } else {
+                LOG.info("Koan skipped [" + curr + "/" + total + "]: " + methodName);
+            }
+        }
+        finishedKoans.add(koanClass);
+        return true;
+    }
+
+    private boolean invoke(KoanMethod m, String method) {
         try {
-            m.invoke(null);
+            m.method.invoke(null);
             return true;
         } catch (Throwable e) {
             LOG.severe("Invocation failed when running " + method);
-            LOG.info("-._.--._.--._.--._.--._.--._.--._.--._.--._.--._.--._.--._.--._.--._.--._.-");
+            LOG.info("  /------------------------------------------------------------");
+            LOG.info("  |");
+            for (String line : m.desc.split("\\n")) {
+                LOG.info("  | " + line);
+            }
+            LOG.info("  |=============================================================");
+            LOG.info("  |");
             if (e instanceof InvocationTargetException ie) {
-                e = ie.getCause();
-                if (e instanceof AssertionError) {
-                    StackTraceElement frame = e.getStackTrace()[0];
+                if (ie.getCause() instanceof AssertionError ae) {
+                    StackTraceElement frame = ae.getStackTrace()[0];
                     LOG.severe(
-                            "koans/"
+                            "| koans/"
                                     + frame.getFileName()
                                     + ":"
                                     + frame.getLineNumber()
                                     + ": assert: "
-                                    + e.getMessage());
+                                    + ae.getMessage());
 
                 } else {
-                    LOG.log(Level.SEVERE, "Unrecognized exception", e);
+                    LOG.log(Level.SEVERE, "| Unrecognized exception:");
+                    LOG.info("  |    " + ie.getCause().toString());
+                    for (StackTraceElement frame : ie.getCause().getStackTrace()) {
+                        // print only top lines which are from koan files.
+                        if (frame.getModuleName() != null) {
+                            LOG.log(Level.INFO, "  |        ...");
+                            break;
+                        }
+                        LOG.log(
+                                Level.INFO,
+                                "  |        at {0}.{1}({2}:{3})",
+                                new Object[] {
+                                    frame.getClassName(),
+                                    frame.getMethodName(),
+                                    frame.getFileName(),
+                                    frame.getLineNumber()
+                                });
+                    }
                 }
             } else {
-                LOG.log(Level.SEVERE, "Unrecognized exception", e);
+                LOG.log(Level.SEVERE, "Inernal ERROR", e);
             }
-            LOG.info("-._.--._.--._.--._.--._.--._.--._.--._.--._.--._.--._.--._.--._.--._.--._.-");
+            LOG.info("  |");
+            LOG.info("  \\------------------------------------------------------------");
             return false;
         }
     }
@@ -239,28 +276,71 @@ public class Run {
         }
     }
 
-    private /*@Nullable */ List<Method> loadClass(String koanClass) {
+    private static class TreeVisitor extends SimpleTreeVisitor<Void, CompilationUnitTree> {
+        private final List<KoanMethod> methods;
+        private final DocTrees docTree;
+        private final Map<String, Method> koanMethods;
+        int seq = 0;
+
+        public TreeVisitor(
+                JavacTask task, Map<String, Method> koanMethods, List<KoanMethod> methods)
+                throws IOException {
+            this.methods = methods;
+            this.koanMethods = koanMethods;
+            Iterable<? extends CompilationUnitTree> asts = task.parse();
+            this.docTree = DocTrees.instance(task);
+            for (CompilationUnitTree ast : asts) {
+                visit(ast.getTypeDecls(), ast);
+            }
+        }
+
+        @Override
+        public Void visitClass(ClassTree node, CompilationUnitTree ast) {
+            return visit(node.getMembers(), ast);
+        }
+
+        @Override
+        public Void visitMethod(MethodTree node, CompilationUnitTree ast) {
+            String name = node.getName().toString();
+            KoanMethod km =
+                    new KoanMethod(
+                            name,
+                            koanMethods.get(name),
+                            seq++,
+                            docTree.getDocCommentTree(TreePath.getPath(ast, node)).toString());
+            methods.add(km);
+            return null;
+        }
+    }
+
+    private /*@Nullable */ List<KoanMethod> loadClass(String koanClass) {
         try {
             // Hoping that this reloads the file as required.
-            ByteClassLoader classLoader = new ByteClassLoader(this.classPath);
-            Class<?> loadedClass = classLoader.loadClass(koanClass);
+            final Class<?> loadedClass;
+            try (ByteClassLoader classLoader = new ByteClassLoader(this.classPath)) {
+                loadedClass = classLoader.loadClass(koanClass);
+            }
             if (!loadedClass.accessFlags().contains(AccessFlag.PUBLIC)) {
                 LOG.severe("Class is not public : " + koanClass);
                 return null;
             }
-            Map<String, Integer> order = getMethodOrder(koanClass);
-            List<Method> methods = new ArrayList<>();
+
+            // Find all the public static void <Method>(void)
+            Map<String, Method> koanMethods = new HashMap<>();
             for (Method m : loadedClass.getDeclaredMethods()) {
                 if (m.accessFlags().containsAll(List.of(AccessFlag.PUBLIC, AccessFlag.STATIC))
                         && m.getReturnType().equals(void.class)
                         && m.getParameterCount() == 0) {
-                    methods.add(m);
-                    if (!order.containsKey(m.getName())) {
-                        LOG.severe("Error in parsing java, didn't find method:" + m);
-                    }
+                    koanMethods.put(m.getName(), m);
                 }
             }
-            methods.sort(Comparator.comparingInt(m -> order.get(m.getName())));
+
+            // Now get the methods and javadoc methods.
+            List<KoanMethod> methods = new ArrayList<>();
+            StringWriter output = new StringWriter();
+            JavacTask task = (JavacTask) getCompilationTask(output, koanClass);
+            new TreeVisitor(task, koanMethods, methods);
+            methods.sort(Comparator.comparingInt(m -> m.seq()));
             return methods;
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -281,37 +361,18 @@ public class Run {
         String out = output.toString();
         if (!out.isBlank()) {
             LOG.severe("Compilation failed when compiling " + Arrays.asList(classNames));
-            LOG.info("-._.--._.--._.--._.--._.--._.--._.--._.--._.--._.--._.--._.--._.--._.--._.-");
+            LOG.info("  /------------------------------------------------------------");
+            LOG.info("  |");
             for (String line : out.split("\\n")) {
-                LOG.info(line);
+                LOG.info("  | " + line);
             }
-            LOG.info("-._.--._.--._.--._.--._.--._.--._.--._.--._.--._.--._.--._.--._.--._.--._.-");
+            LOG.info("  \\------------------------------------------------------------");
         }
         if (status != null && status) {
             return true;
         } else {
             return false;
         }
-    }
-
-    private Map<String, Integer> getMethodOrder(String className) throws IOException {
-        Map<String, Integer> methods = new HashMap<>();
-        StringWriter output = new StringWriter();
-        JavacTask task = (JavacTask) getCompilationTask(output, className);
-        Iterable<? extends CompilationUnitTree> ast = task.parse();
-        // output should be empty, as we are compiling it second time.
-        for (CompilationUnitTree tree : ast) {
-            for (Tree decl : tree.getTypeDecls()) {
-                if (decl instanceof ClassTree kls) {
-                    for (Tree member : kls.getMembers()) {
-                        if (member instanceof MethodTree method) {
-                            methods.put(method.getName().toString(), methods.size());
-                        }
-                    }
-                }
-            }
-        }
-        return methods;
     }
 
     private JavaCompiler.CompilationTask getCompilationTask(
