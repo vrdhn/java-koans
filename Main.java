@@ -39,15 +39,15 @@ public class Main {
      * Update this when a new koans source file is added in koans folder
      */
     private static final String KOANS_CLASSES = """
-        Intro1 Intro2
+        Intro1
+        Intro2
         Variable
         """;
 
     private static final Logger LOG;
 
     static {
-        System.setProperty("java.util.logging.SimpleFormatter.format",
-                "%1$tT : %4$s : %5$s%6$s%n");
+        System.setProperty("java.util.logging.SimpleFormatter.format", "%4$s : %5$s%6$s%n");
         LOG = Logger.getAnonymousLogger();
     }
 
@@ -59,18 +59,18 @@ public class Main {
 
         File src = new File(sourcePath);
         if (!src.isDirectory()) {
-            LOG.severe("Source directory " + sourcePath + " is not a directory !");
+            LOG.log(Level.SEVERE, "Source directory {0} is not a directory !", sourcePath);
             return;
         }
         File cp = new File(classPath);
         if (cp.exists()) {
             if (!cp.isDirectory()) {
-                LOG.severe("Build directory " + cp + " is not a directory !");
+                LOG.log(Level.SEVERE, "Build directory {0} is not a directory !", cp);
                 return;
             }
         } else {
             if (!cp.mkdirs()) {
-                LOG.severe("Error creating Build directory " + cp + " !");
+                LOG.log(Level.SEVERE, "Error creating Build directory {0} !", cp);
                 return;
             }
         }
@@ -78,7 +78,7 @@ public class Main {
         Set<String> diff = asSet(helperClasses);
         diff.retainAll(asSet(koansClasses));
         if (!diff.isEmpty()) {
-            LOG.severe("HELPERS and SOURCES in Main.java have common elements:" + diff);
+            LOG.log(Level.SEVERE, "HELPERS and SOURCES in Main.java have common elements:{0}", diff);
             return;
         }
 
@@ -95,8 +95,8 @@ public class Main {
         try {
             Main runner = new Main(sourcePath, classPath, helperClasses, koansClasses, toSkip);
             runner.runKoans();
-        } catch (Throwable e) {
-            LOG.log(Level.SEVERE, "Caught exception ", e);
+        } catch (Exception e) {
+            LOG.log(Level.SEVERE, "Caught unexpected exception", e);
         }
     }
 
@@ -141,7 +141,8 @@ public class Main {
                 LOG.info("");
 
                 watchKey.pollEvents();
-                while (null != watcher.poll()) {/*nothing to do*/
+                while (null != watcher.poll()) {
+                    /*nothing to do*/
                 }
                 watchKey.reset();
                 watcher.take();
@@ -165,17 +166,15 @@ public class Main {
         }
         boolean ret = true;
         if (!declared.isEmpty()) {
-            LOG.severe("Files not found in " + sourcePath + ": " + declared);
+            LOG.log(Level.SEVERE, "Files not found in {0}: {1}", new Object[]{sourcePath, declared});
             ret = false;
         }
         if (!undeclared.isEmpty()) {
-            LOG.severe("Classes not declared in Main.java : " + undeclared);
+            LOG.log(Level.SEVERE, "Classes not declared in Main.java : {0}", undeclared);
             ret = false;
         }
         if (!ret) {
-            LOG.severe("Update Main.java and/or add/remove Java files in "
-                    + sourcePath
-                    + " and rerun");
+            LOG.log(Level.SEVERE, "Update Main.java and/or add/remove Java files in {0} and rerun", sourcePath);
         }
         return ret;
     }
@@ -200,9 +199,9 @@ public class Main {
                 if (!runSingleKoan(finishedKoans, koanClass)) {
                     return false;
                 }
-                LOG.info("Koan set done [" + currClass + "/" + totalClass + "]: " + koanClass);
+                LOG.log(Level.INFO, "Koan set done [{0}/{1}]: {2}", new Object[]{currClass, totalClass, koanClass});
             } else {
-                LOG.info("Koan set skipped [" + currClass + "/" + totalClass + "]: " + koanClass);
+                LOG.log(Level.INFO, "Koan set skipped [{0}/{1}]: {2}", new Object[]{currClass, totalClass, koanClass});
             }
         }
         return true;
@@ -227,10 +226,10 @@ public class Main {
                 if (!invokeStatus) {
                     return false;
                 }
-                LOG.info("Koan done  [" + curr + "/" + total + "]: " + methodName);
+                LOG.log(Level.INFO, "Koan done  [{0}/{1}]: {2}", new Object[]{curr, total, methodName});
                 finishedKoans.add(methodName);
             } else {
-                LOG.info("Koan skipped [" + curr + "/" + total + "]: " + methodName);
+                LOG.log(Level.INFO, "Koan skipped [{0}/{1}]: {2}", new Object[]{curr, total, methodName});
             }
         }
         finishedKoans.add(koanClass);
@@ -242,7 +241,7 @@ public class Main {
             m.method.invoke(null);
             return true;
         } catch (Throwable e) {
-            LOG.severe("Invocation failed when running " + method);
+            LOG.log(Level.SEVERE, "Invocation failed when running {0}", method);
             LOG.info("  /------------------------------------------------------------");
             for (String line : m.desc.split("\\n")) {
                 LOG.info("  |" + line);
@@ -252,17 +251,11 @@ public class Main {
             if (e instanceof InvocationTargetException ie) {
                 if (ie.getCause() instanceof AssertionError ae) {
                     StackTraceElement frame = ae.getStackTrace()[0];
-                    LOG.severe(
-                            "| koans/"
-                            + frame.getFileName()
-                            + ":"
-                            + frame.getLineNumber()
-                            + ": assert: "
-                            + ae.getMessage());
+                    LOG.log(Level.SEVERE, "| koans/{0}:{1}: assert: {2}", new Object[]{frame.getFileName(), frame.getLineNumber(), ae.getMessage()});
 
                 } else {
                     LOG.log(Level.SEVERE, "| Unrecognized exception:");
-                    LOG.info("  |    " + ie.getCause().toString());
+                    LOG.log(Level.INFO, "  |    {0}", ie.getCause().toString());
                     for (StackTraceElement frame : ie.getCause().getStackTrace()) {
                         // print only top lines which are from koan files.
                         if (frame.getModuleName() != null) {
