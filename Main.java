@@ -39,9 +39,9 @@ public class Main {
      * Update this when a new koans source file is added in koans folder
      */
     private static final String KOANS_CLASSES = """
-        Intro1
-        Intro2
-        Variable
+        IntroAssertBased
+        IntroCompileBased
+        LocalVariables
         """;
 
     private static final Logger LOG;

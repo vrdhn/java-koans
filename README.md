@@ -20,7 +20,7 @@ To exit press ^C, or finish all the koans.
 
 ## philosphy
 
-* Covers mostly language, going in librarie only when needed
+* Covers mostly language, going in libraries only when needed
 
 * Part 1 -> Structure of method
 * Part 2 -> Structure of class/interface/records etc.
@@ -32,11 +32,11 @@ To exit press ^C, or finish all the koans.
 - [X] Introduction to koans system
   - [X] assert based test
   - [X] compilation failure based test
-- [ ] Local Variables
-  - [ ] declarations
-  - [ ] assignment
-  - [ ] initialization
-  - [ ] uninitialized
+- [X] Local Variables
+  - [X] declarations
+  - [X] assignment
+  - [X] initialization
+  - [-] uninitialized
 - [ ] Primitive types & values
   - [ ] boolean
   - [ ] char

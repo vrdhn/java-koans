@@ -1,5 +1,5 @@
 
-public class Intro1 {
+public class IntroAssertBased {
 
     /**
      * This koan is to get introduced to this koan system.
@@ -17,7 +17,7 @@ public class Intro1 {
      * IDE.
      *
      */
-    public static void intro1() {
+    public static void assertBased() {
         assert false : "A 'true' is needed here.";
     }
 
