@@ -42,6 +42,7 @@ public class Main {
         IntroAssertBased
         IntroCompileBased
         LocalVariables
+        PrimitiveTypes
         """;
 
     private static final Logger LOG;

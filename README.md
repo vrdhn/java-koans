@@ -26,6 +26,12 @@ To exit press ^C, or finish all the koans.
 * Part 2 -> Structure of class/interface/records etc.
 * Part 3 -> Structure of project
 
+# Features to add
+
+* Beginner/Intermediate/Advanced tag, and to run only one subset.
+* export all java docs to a text file for reviewing the content
+* cmd line arg to run specific method.
+
 
 
 # progress
