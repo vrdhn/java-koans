@@ -13,7 +13,7 @@ public class PrimitiveTypes {
      *  The operators allowed are !(not),||(or),&&(and),==(equals),!=(not equals)
      *   and =(assignment).
      *   The '||' and '&&' do short circuited evaluation.
-     *  Beside these boolean values are used as conditonals in ?: ( ternay op), 
+     *  Beside these boolean values are used as conditonals in ?: ( ternay op),
      *  and control flow ( for, do, while, if )
      */
     public static void booleans() {
@@ -33,7 +33,7 @@ public class PrimitiveTypes {
     /**
      * Let's get 'char' out of out way, before we talk about integeral types.
      *
-     * It's defined a s  16 bit unsigned integeral type which can take
+     * It's defined as  16 bit unsigned integeral type which can take
      * values from 0 ( '\u0000') to  65535 ('\UFFFF').
      *
      * But do remember that unicode is complicated, and java doesn't
@@ -71,9 +71,45 @@ public class PrimitiveTypes {
      *  3. int takes 32 bits, and is signed
      *  4. long takes 64 bits, and is signed.
      *
+     * These are all the standard feature that are found in any language.
+     * Compiler would not let you do a lossy conversion, e.g.
+     * assigning an short type variable to an integer value.
+     *
+     * However compiler doesn't warns against overflows.
      */
     public static void integerals () {
 
+        int maxInt = Integer.MAX_VALUE;
+
+        assert maxInt + 1 != Integer.MIN_VALUE : "silent overflow, use with care";
+
+        assert Long.MAX_VALUE + 1 != Long.MIN_VALUE : "silent overflow, use with care";
+
+
+
+    }
+
+    /**
+     * Java has two floating point types,
+     *   float, which is  4 byte,
+     *   double, which is 8 byte.
+     *
+     * These are all the standard feature that are found in any language.
+     * Java also support +Infinity, -Infinity and NaN
+     *
+     *
+     */
+    public static void floatings () {
+
+
+        double one = 1.0;
+        double zero = 0.0;
+
+        assert Double.isNaN (zero / zero) == false : "this is not a number";
+
+        assert Double.isInfinite(  - one / zero) == false : "this is positive infinity";
+
+        assert Math.signum( - one / zero) == +1.0 : "signum tells sign of anumber, -1 or +1 or 0 or NaN";
 
     }
 

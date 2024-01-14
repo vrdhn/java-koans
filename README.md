@@ -44,11 +44,11 @@ To exit press ^C, or finish all the koans.
   - [X] initialization
   - [-] uninitialized
 - [ ] Primitive types & values
-  - [ ] boolean
-  - [ ] char
-  - [ ] byte, short, int, long
-  - [ ] float, double
-  - [ ] automatic type ('var')
+  - [X] boolean
+  - [X] char
+  - [X] byte, short, int, long
+  - [X] float, double
+  - [-] automatic type ('var')
 - [ ] Reference Types and Values.
   - [ ] String
   - [ ] Boxed primitive
