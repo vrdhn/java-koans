@@ -1,3 +1,5 @@
+package koans.decl;
+
 public class PrimitiveTypes {
 
 

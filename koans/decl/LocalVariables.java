@@ -1,3 +1,4 @@
+package koans.decl;
 
 public class LocalVariables {
 
