@@ -50,7 +50,7 @@ To exit press ^C, or finish all the koans.
   - [X] float, double
   - [-] automatic type ('var')
 - [ ] Reference Types and Values.
-  - [ ] String
+  - [X] String
   - [ ] Boxed primitive
   - [ ] Objects, new
   - [ ] Object

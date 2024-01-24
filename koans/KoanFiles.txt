@@ -8,3 +8,4 @@ intro/IntroCompileBased.java
 decl/LocalVariables.java
 decl/PrimitiveTypes.java
 
+objects/StringObjects.java
